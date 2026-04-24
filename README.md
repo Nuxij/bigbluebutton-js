@@ -2,6 +2,14 @@
 
 JavaScript layer to interact with BigBlueButton [API](https://docs.bigbluebutton.org/dev/api). Supports [WebHooks](https://docs.bigbluebutton.org/dev/webhooks.html).
 
+## BBB 3.0 Migration Notes
+
+- `join(password)` is still supported in compatibility mode, but deprecated for BBB 3.0.
+- Prefer `join(fullName, meetingID, { role: 'MODERATOR' | 'VIEWER' })`.
+- `sendChatMessage` and `getJoinUrl` are now available in administration module.
+- `createRequest` and `createPost` are available for BBB 3.0 POST-style create calls.
+- Removed BBB 3.0 `create` params (`breakoutRoomsEnabled`, `learningDashboardEnabled`, `virtualBackgroundsDisabled`) are ignored and warned.
+
 ## [Read the Official Documentation](https://bigbluebutton.network/)
 
 ## [Follow the Changelog](https://github.com/aakatev/bigbluebutton-js/tree/master/CHANGELOG.md)
@@ -36,6 +44,17 @@ let api = bbb.api(
     process.env.BBB_URL, 
     process.env.BBB_SECRET
   )
+
+// Optional compatibility controls
+let strictApi = bbb.api(
+    process.env.BBB_URL,
+    process.env.BBB_SECRET,
+    {
+      compat: {
+        joinPasswordMode: 'strict',
+      },
+    }
+  )
 ```
 For comprehensive getting started section, see [official docs](https://bigbluebutton.network/docs/getting-started/).
 
@@ -66,16 +85,46 @@ let meetingCreateUrl = api.administration.create('My Meeting', '1', {
 http(meetingCreateUrl).then((result) => {
   console.log(result)
  
-  let moderatorUrl = api.administration.join('moderator', '1', 'supersecret')
-  let attendeeUrl = api.administration.join('attendee', '1', 'secret')
+  let moderatorUrl = api.administration.join('moderator', '1', {
+    role: 'MODERATOR',
+  })
+  let attendeeUrl = api.administration.join('attendee', '1', {
+    role: 'VIEWER',
+  })
   console.log(`Moderator link: ${moderatorUrl}\nAttendee link: ${attendeeUrl}`)
  
-  let meetingEndUrl = api.administration.end('1', 'supersecret')
+  let meetingEndUrl = api.administration.end('1')
   console.log(`End meeting link: ${meetingEndUrl}`)
 })
 ```
 
 For comprehensive examples section, see [official docs](https://bigbluebutton.network/docs/getting-started/examples/).
+
+### POST create request descriptors
+
+If you need to send large create payloads (for example client settings overrides), use a request descriptor and pass it to `bbb.http`.
+
+```javascript
+const bbb = require('bigbluebutton-js')
+let api = bbb.api(process.env.BBB_URL, process.env.BBB_SECRET)
+let http = bbb.http
+
+const createRequest = api.administration.createPost(
+  'My Meeting',
+  'room-42',
+  {
+    duration: 60,
+    allowOverrideClientSettingsOnCreateCall: true,
+  },
+  'clientSettingsOverride=%7B%22public%22%3A%7B%22app%22%3A%7B%22appName%22%3A%22Custom%22%7D%7D%7D'
+)
+
+http(createRequest).then((result) => {
+  console.log(result)
+})
+```
+
+Use `createRequest` if you want to fully control method, headers, and body.
 
 ## Reference
 
@@ -95,6 +144,8 @@ Make sure, you installed development dependencies ([mocha](https://www.npmjs.com
 ```bash
 npm run test
 ```
+
+The current test suite is offline-first and does not require a live BBB server.
 
 ## License
 

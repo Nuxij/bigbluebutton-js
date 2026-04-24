@@ -2,7 +2,20 @@
 
 let { normalizeUrl } = require('./util')
 
+function withDefaults(options = {}) {
+  const compat = {
+    joinPasswordMode: 'legacy',
+    ...(options.compat || {}),
+  }
+
+  return {
+    ...options,
+    compat,
+  }
+}
+
 function api(host, salt, options = {}) {
+  options = withDefaults(options)
   options.host = normalizeUrl(host)
   options.salt = salt
 
